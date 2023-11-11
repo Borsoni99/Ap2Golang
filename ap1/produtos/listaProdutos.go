@@ -107,3 +107,19 @@ func Excluir(id int) int {
 	m.M.SomaProdutosCadastrados(-1)
 	return 0
 }
+
+/*
+atualiza um produto da lista a partir do seu id.
+Retorna -2 caso não haja produtos na lista.
+Retorna -1 caso não haja um produto com o id passado, ou 0 em caso de sucesso.
+*/
+func Atulizar(id int, valor float64) int{
+	if totalProdutos == 0 { return -2 }
+
+	_, ind := BuscarId(id)
+	if ind == -1 { return -1 }
+
+	Produtos[ind].Preco = valor
+
+	return 0
+}

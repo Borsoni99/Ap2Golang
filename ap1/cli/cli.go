@@ -22,6 +22,7 @@ func opcoes() {
 	fmt.Println("6 - Adicionar pedido;")
 	fmt.Println("7 - Expedir pedido;")
 	fmt.Println("8 - Exibir métricas do sistema;")
+	fmt.Println("9 - Atualizar valor Produto;")
 	fmt.Println("20 - Exibir todos os pedidos em andamento;")
 	fmt.Println("21 - Cadastrar produtos em lote;")
 	fmt.Println("100 - Sair do programa;")
@@ -51,6 +52,8 @@ func Cli() {
 			pedidos.Expedir()
 		case "8":
 			metricas.M.ExibirMetricas()
+		case "9":
+			atualizarProduto()
 		case "20":
 			pedidos.Exibir()
 		case "21":
@@ -60,6 +63,12 @@ func Cli() {
 			return
 		}
 	}
+}
+
+func atualizarProduto() {
+	id := leInt("Informe o id do produto a ser atualizado: ")
+	valor := leFloat("Informe o novo valor do produto: ")
+	produtos.Atulizar(id, valor)
 }
 
 func leTexto(prompt string) string {

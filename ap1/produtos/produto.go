@@ -39,6 +39,7 @@ func criar(nome, descricao string, preco float64, id int) Produto {
 		p.definirId()
 	} else {
 		p.Id = id
+		TotalProdutosJaCadastrados++
 	}
 
 	return p

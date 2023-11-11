@@ -57,6 +57,8 @@ func excluir() Pedido {
 		}
 	}
 
+	totalPedidos--
+
 	m.M.SomaPedidosEmAndamento(-1)
 	return pedidoRemovido
 }
