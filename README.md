@@ -3,5 +3,5 @@
 - Thiago Borsoni
 - Matheus Peçanha
 - Daniel Lloyd
-- Bezim Pintaralho
+- Bernado Pinto
 - Guilherme Almeida
