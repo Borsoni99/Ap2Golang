@@ -19,7 +19,7 @@ Se o id não existir para um produto, retorna um Item vazio.
 */
 func Criar(id int, quant int) Item {
 	produto, _ := p.BuscarId(id)
-	if (produto == p.Produto{}) { return Item{} }
+	if (produto == &p.Produto{}) { return Item{} }
 
-	return Item{Prod: &produto, Quant: quant}
+	return Item{Prod: produto, Quant: quant}
 }

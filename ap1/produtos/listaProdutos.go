@@ -5,10 +5,95 @@ import (
 	"strings"
 )
 
+
+type No struct {
+	chave Produto
+	prox  *No
+}
+
+type Lista struct {
+	cab   *No
+}
+
+
+func (l *Lista) insere(produto Produto) {
+	novoNo := &No{chave: produto}
+
+	no := l.cab
+	if no == nil {
+		l.cab = novoNo
+	} else {
+		for no.prox != nil { no = no.prox }
+		no.prox = novoNo
+	}
+}
+
+func (l *Lista) exibe() {
+	no := l.cab
+
+	for no != nil {
+		no.chave.Exibir()
+		no = no.prox
+	}
+}
+
+func (l *Lista) buscaPorProduto(produto Produto) *No {
+	no := l.cab
+
+	for no != nil {
+		if no.chave == produto { return no }
+		no = no.prox
+	}
+
+	return nil
+}
+
+func (l *Lista) buscaPorId(id int) *No {
+	no := l.cab
+
+	for no != nil {
+		if no.chave.Id == id { return no }
+		no = no.prox
+	}
+
+	return nil
+
+}
+
+func (l *Lista) buscaPorNome(nome string) *No {
+	no := l.cab
+
+	for no != nil {
+		if no.chave.Nome == nome { return no }
+		no = no.prox
+	}
+
+	return nil
+}
+
+func (l *Lista) remove(produto Produto) {
+	if l.cab == nil {
+		return
+	}
+
+	if l.cab.chave == produto {
+		l.cab = l.cab.prox
+		return
+	}
+
+	noAnterior := l.cab
+	for noAtual := l.cab.prox; noAtual != nil; noAtual = noAtual.prox {
+		if noAtual.chave == produto {
+			noAnterior.prox = noAtual.prox
+			return
+		}
+		noAnterior = noAtual
+	}
+}
+
 const maxProdutos = 50
 
-var Produtos [maxProdutos]Produto
-var totalProdutos = 0
+var lista = Lista{cab: nil}
 
 func tentarCriar(nome, descricao string, preco float64, id int) Produto {
 	if id != -1 {
@@ -21,28 +106,32 @@ func tentarCriar(nome, descricao string, preco float64, id int) Produto {
 
 /*
 Adiciona um produto com nome, descrição e preço à lista de produtos.
-Adiciona o produto primeiro espaço vazio da lista.
+Adiciona o produto no primeiro espaço vazio da lista.
 Caso já exista um produto com o mesmo id, não adiciona e retorna -3.
 Caso já exista um produto com o mesmo nome, não adiciona e retorna erro -2.
 Retorna -1 caso a lista esteja cheia, ou o número de produtos cadastrados em caso de sucesso.
 */
 func AdicionarUnico(nome, descricao string, preco float64, id int) int {
-	if totalProdutos == maxProdutos { return -1 } // Overflow
+	if listaTamanho() == maxProdutos {
+		return -1 // Overflow
+	}
 
-	for _, produto := range Produtos {
-		if (produto == Produto{}) { break }
-		if produto.Nome == nome {
-			return -2
-		}
+	if lista.buscaPorNome(nome) != nil {
+		return -2 // Já existe um produto com o mesmo nome
+	}
+
+	if lista.buscaPorProduto(Produto{Id: id}) != nil {
+		return -3 // Já existe um produto com o mesmo id
 	}
 
 	produtoCriado := tentarCriar(nome, descricao, preco, id)
-	if (produtoCriado == Produto{}) { return -3 }
+	if produtoCriado == (Produto{}) {
+		return -3 // Falha ao criar o produto
+	}
 
-	Produtos[totalProdutos] = produtoCriado
-	totalProdutos++
+	lista.insere(produtoCriado)
 	m.M.SomaProdutosCadastrados(1)
-	return totalProdutos
+	return listaTamanho()
 }
 
 /*
@@ -50,15 +139,13 @@ Localiza um produto a partir do seu id.
 Retorna o produto encontrado e a sua posição na lista, em caso de sucesso.
 Retorna um produto vazio e -1 em caso de erro.
 */
-func BuscarId(id int) (Produto, int) {
-	for ind, produto := range Produtos {
-		if (produto == Produto{}) { break }
-		if produto.Id == id {
-			return produto, ind
-		}
+func BuscarId(id int) (*Produto, int) {
+	no := lista.buscaPorId(id)
+	if no != nil {
+		return &no.chave, 0
 	}
 
-	return Produto{}, -1
+	return nil, -1
 }
 
 /*
@@ -68,13 +155,12 @@ Retorna um slice com todos os produtos encontrados, e o tamanho do slice.
 func BuscarNome(comecaCom string) ([]Produto, int) {
 	var produtosEncontrados []Produto
 
-	for _, produto := range Produtos {
-		if (produto == Produto{}) { break }
-
-		if strings.HasPrefix(produto.Nome, comecaCom) {
-			produtosEncontrados = append(produtosEncontrados, produto)
-		}
+	no := lista.buscaPorNome(comecaCom)
+	for no != nil {
+		produtosEncontrados = append(produtosEncontrados, no.chave)
+		no = no.prox
 	}
+
 	return produtosEncontrados, len(produtosEncontrados)
 }
 
@@ -82,10 +168,7 @@ func BuscarNome(comecaCom string) ([]Produto, int) {
 Exibe todos os produtos cadastrados.
 */
 func Exibir() {
-	for _, produto := range Produtos {
-		if (produto == Produto{}) { break }
-		produto.Exibir()
-	}
+	lista.exibe()
 }
 
 /*
@@ -94,32 +177,77 @@ Retorna -2 caso não haja produtos na lista.
 Retorna -1 caso não haja um produto com o id passado, ou 0 em caso de sucesso.
 */
 func Excluir(id int) int {
-	if totalProdutos == 0 { return -2 }
-
-	_, ind := BuscarId(id)
-	if ind == -1 { return -1 }
-
-	for i := ind; i < totalProdutos - 1; i++ {
-		Produtos[i] = Produtos[i + 1]
+	if listaTamanho() == 0 {
+		return -2 // Lista vazia
 	}
-	totalProdutos--
-	Produtos[totalProdutos] = Produto{}
+
+	no := lista.buscaPorId(id)
+	if no == nil {
+		return -1 // Produto com o id não encontrado
+	}
+
+	lista.remove(no.chave)
 	m.M.SomaProdutosCadastrados(-1)
 	return 0
 }
 
 /*
-atualiza um produto da lista a partir do seu id.
+Atualiza um produto da lista a partir do seu id.
 Retorna -2 caso não haja produtos na lista.
 Retorna -1 caso não haja um produto com o id passado, ou 0 em caso de sucesso.
 */
-func Atulizar(id int, valor float64) int{
-	if totalProdutos == 0 { return -2 }
+func Atualizar(id int, valor float64) int {
+	if listaTamanho() == 0 {
+		return -2 // Lista vazia
+	}
 
-	_, ind := BuscarId(id)
-	if ind == -1 { return -1 }
+	no := lista.buscaPorId(id)
+	if no == nil {
+		return -1 // Produto com o id não encontrado
+	}
 
-	Produtos[ind].Preco = valor
-
+	no.chave.Preco = valor
 	return 0
 }
+
+// Função auxiliar para obter o tamanho da lista
+func listaTamanho() int {
+	no := lista.cab
+	count := 0
+
+	for no != nil {
+		count++
+		no = no.prox
+	}
+
+	return count
+}
+
+func OrdenarPorNome() {
+    trocou := true
+    limite := listaTamanho()
+
+    for trocou && limite > 1 {
+        trocou = false
+        noAtual := lista.cab
+        noAnterior := lista.cab
+        proximo := lista.cab.prox
+
+        for i := 0; i < limite-1 && noAtual != nil && proximo != nil; i++ {
+            if strings.Compare(noAtual.chave.Nome, proximo.chave.Nome) > 0 {
+                if noAtual == lista.cab {
+                    lista.cab = proximo
+                } else {
+                    noAnterior.prox = proximo
+                }
+                noAtual.prox, proximo.prox = proximo.prox, noAtual
+                noAtual, trocou = proximo, true
+            }
+            noAtual, noAnterior, proximo = proximo, noAtual, proximo.prox
+        }
+        limite--
+    }
+}
+
+
+
